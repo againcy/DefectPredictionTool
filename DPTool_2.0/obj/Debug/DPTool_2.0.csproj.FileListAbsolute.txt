@@ -1,0 +1,7 @@
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\bin\Debug\DPTool_2.0.exe.config
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\bin\Debug\DPTool_2.0.exe
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\bin\Debug\DPTool_2.0.pdb
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\obj\Debug\DPTool_2.0.csprojResolveAssemblyReference.cache
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\obj\Debug\DPTool_2.0.exe
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\obj\Debug\DPTool_2.0.pdb
+C:\Users\Liuyibin\OneDrive\文档\Defect_Prediction\DPTool_2.0\DPTool_2.0\bin\Debug\DPTool_2.exe.config
