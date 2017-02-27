@@ -330,8 +330,10 @@ namespace DPTool_2
         /// <param name="modeList"></param>
         static void Run_Evaluation(Dictionary<string, int> methodList, IEnumerable<EvaluationMode> modeList)
         {
+            Console.WriteLine(System.DateTime.Now.ToLongTimeString());
             Evaluation ev = new Evaluation(@"G:\R\TraditionalML\promise_codechurn");
             ev.DoWork(methodList, modeList.ToList());
+            Console.WriteLine(System.DateTime.Now.ToLongTimeString());
         }
 
         /// <summary>
@@ -386,7 +388,7 @@ namespace DPTool_2
                 //for (int i = 0; i < 5; i++) sw.WriteLine("{0},{1}_{2}", tmp[0], tmp[1], i.ToString());
                 //Preprocess.CreateCVList(tmp[0], tmp[1]);  //cv list
                 //Preprocess.CreateCV(tmp[0], tmp[1], "CodeMetrics", 5);
-                Preprocess.CreateCVHVSM(tmp[0], tmp[1], "mixed", 5);
+                Preprocess.CreateCVHVSM(tmp[0], tmp[1], "code", 5);
             }
             sw.Close();
             sr.Close();

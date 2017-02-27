@@ -40,7 +40,27 @@ namespace DPTool_2
             else endRelMetric = endRelease.mixedMetric;
             //记录每个版本的度量数，以及总的版本数
             var metricsEachRel = endRelMetric.table.Columns.Count-2;
-            var totalRelCnt = pickedRel.Count;
+            //获取最长的版本链长度
+            var totalRelCnt = 0;
+            foreach (DataRow module in endRelMetric.table.Rows)
+            {
+                var name = module["name"].ToString();
+                //统计该模块出现在了几个版本中，并将度量串起来
+                var relCnt = 0;
+                foreach (var rel in pickedRel.Values)
+                {
+                    Metrics relMetric = rel.codeMetric;
+                    foreach (DataRow row in relMetric.table.Rows)
+                    {
+                        if (row["name"].ToString() == name)
+                        {
+                            relCnt++;
+                            break;
+                        }
+                    }
+                }
+                if (relCnt > totalRelCnt) totalRelCnt = relCnt;
+            }
             //遍历最终版本中的模块名，并生成HVSM
             foreach(DataRow module in endRelMetric.table.Rows)
             {
