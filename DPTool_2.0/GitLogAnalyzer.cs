@@ -25,14 +25,16 @@ namespace DPTool_2
             DateTime startDate, 
             DateTime endDate, 
             string repoPath,
-            string language
+            string language,
+            BugCommitChecker bugChecker
             )
         { 
             var s = new StreamReader(logPath).ReadToEnd();
             var p = new GitLogParser(s, seperator);//"#SEP#");
             var results = p.Commits().Where(x => x.commitdate >= startDate
                 && x.commitdate <= endDate).ToArray();
-            return GitCommandTool.GetAuthorExp(results, repoPath,language);
+            return Author.GetAuthorExp(results, repoPath,language,bugChecker);
+            
         }
 
         /// <summary>
@@ -50,10 +52,11 @@ namespace DPTool_2
             string repoPath,
             string seperator,
             DateTime endDate,
-            string language
+            string language,
+            BugCommitChecker bugChecker
             )
         {
-            var intervals = BuggyIntervalFinder.GetBuggyIntervals(logPath, repoPath, seperator, endDate, language);
+            var intervals = BuggyIntervalFinder.GetBuggyIntervals(logPath, repoPath, seperator, endDate, language,bugChecker);
             var ret = new List<string>();
             foreach (var interval in intervals)
             {

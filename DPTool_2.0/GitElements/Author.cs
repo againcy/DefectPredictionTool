@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
+using DPTool_2.AnalyzeGitLog;
+
 namespace DPTool_2
 {
     
@@ -95,6 +97,60 @@ namespace DPTool_2
                 former = exp;
             }
             return former.Value;
+        }
+
+        /// <summary>
+        /// 获取作者在每个commit中修改的文件和行数
+        /// </summary>
+        /// <param name="commits"></param>
+        /// <param name="workdir">repository路径</param>
+        /// <param name="language">程序文件后缀(.java)</param>
+        /// <returns></returns>
+        public static IEnumerable<Author> GetAuthorExp(Commit[] commits, string workdir, string language, BugCommitChecker bugChecker)
+        {
+            var ret = new Dictionary<string, Author>();
+            foreach (var x in commits)
+            {
+                try
+                {
+                    var gitshowcontent = GitCommandTool.RunGitCommand(workdir, string.Format("show {0}", x.commitno));
+                    var gsp = new GitShowParser(gitshowcontent);
+                    FileChange[] filechanges = null;
+                    if (language == "java") filechanges = gsp.info().Where(y => y.Path.EndsWith(".java")).ToArray();
+                    else if (language == "c")
+                        filechanges = gsp.info().Where(y => (y.Path.EndsWith(".c")
+                                                          || y.Path.EndsWith(".cpp")
+                                                          || y.Path.EndsWith(".h")
+                                                          || y.Path.EndsWith(".hpp"))).ToArray();
+                    if (filechanges.Count() == 0)
+                    {
+                        //System.Diagnostics.Debug.WriteLine("continued");
+                        continue;
+                    }
+                    //将每个commit修改的文件名和每个文件修改的行数信息添加进作者的信息中
+                    if (ret.ContainsKey(x.author) == false) ret.Add(x.author, new Author(x.author));
+                    var changeInfo = new CommitChangeInfo(x.commitno);
+                    changeInfo.isBugCommit = bugChecker.ContainsBug(x.message,BugCommitChecker.CheckMode.JIRA);
+                    changeInfo.commitDate = x.commitdate;
+                    changeInfo.authorName = x.author;
+                    foreach (var fc in filechanges)
+                    {
+                        changeInfo.oldLinesDelta.Add(fc.Path, fc.OldVersionChangedLines.Count());
+                        changeInfo.newLinesDelta.Add(fc.Path, fc.NewVersionChangedLines.Count());
+                    }
+                    ret[x.author].commitChangeInfo.Add(changeInfo);
+                    //checkFileChanges2(workdir, date, ret, x, filechanges);
+                    //System.Diagnostics.Debug.WriteLine("passed with flag = "+flag);
+                }
+                catch (Exception)
+                {
+                    //flag = false;
+                    System.Diagnostics.Debug.WriteLine("with exception in GitCommandTool.GetAuthorExp");
+                    //throw;
+                }
+            }
+            return ret.Values.ToList();
+
         }
     }
 }

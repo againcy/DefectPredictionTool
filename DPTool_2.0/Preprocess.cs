@@ -31,7 +31,7 @@ namespace DPTool_2
             HVSM_metrics = new List<string>();
             HVSM_bugs = new List<string>();
             //选出startRel到endRel之间的版本
-            var pickedRel = project.GetPickedRelease(startRel, endRel);
+            var pickedRel = project.GetReleaseBetween(startRel, endRel);
             //记录最后一个版本以及其度量（模块）
             var endRelease = pickedRel.Last().Value;
             Metrics endRelMetric;
@@ -128,7 +128,7 @@ namespace DPTool_2
             mixedRel = new List<string>();
             header = "";
             //选出startRel到endRel之间的版本
-            var pickedRel = project.GetPickedRelease(startRel, endRel);
+            var pickedRel = project.GetReleaseBetween(startRel, endRel);
             
             foreach (var rel in pickedRel.Values)
             {

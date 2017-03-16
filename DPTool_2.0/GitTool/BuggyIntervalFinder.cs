@@ -39,7 +39,7 @@ namespace DPTool_2
                     }
                 }
             }
-            catch (Exception e)
+            catch 
             {
 
             }
@@ -55,8 +55,9 @@ namespace DPTool_2
         /// <param name="sep">分隔符</param>
         /// <param name="endDate">查找的截止时间</param>
         /// <param name="language">程序文件后缀(.java)</param>
+        /// <param name="bugChecker">bug commit检测</param>
         /// <returns></returns>
-        public static IEnumerable<BuggyInterval> GetBuggyIntervals(string logpath, string workdir, string sep,DateTime endDate,string language)
+        public static IEnumerable<BuggyInterval> GetBuggyIntervals(string logpath, string workdir, string sep,DateTime endDate,string language, BugCommitChecker bugChecker)
         {
             var glp = new AnalyzeGitLog.GitLogParser(new StreamReader(logpath).ReadToEnd(), sep);
             /*var commitdates = new Dictionary<string, DateTime>();
@@ -66,21 +67,20 @@ namespace DPTool_2
                 
             }*/
             var intervals = new List<BuggyInterval>();
-            var counter = 0;
             var glpcommits = glp.Commits().ToArray();
             var total = glpcommits.Count();
             Parallel.
             ForEach(glpcommits, c =>
             {
                 //Console.Write(++counter + "/" + total);
-                if (c.commitdate <= endDate && GitCommandTool.ContainsBugKeywords(c.message))
+                if (c.commitdate <= endDate && bugChecker.ContainsBug(c.message, BugCommitChecker.CheckMode.JIRA))
                 {
                     try
                     {
                         var cntnt = GitCommandTool.RunGitCommand(workdir, string.Format("show {0}", c.commitno));
-                        var gsp = new AnalyzeGitLog.GitShow.GitShowParser(cntnt);
+                        var gsp = new GitShowParser(cntnt);
                         //var filechanges = gsp.info().Where(y => y.Path.EndsWith(language)).ToArray();
-                        AnalyzeGitLog.GitShow.FileChange[] filechanges = null;
+                        FileChange[] filechanges = null;
                         if (language == "java") filechanges = gsp.info().Where(y => y.Path.EndsWith(".java")).ToArray();
                         else if (language == "c") filechanges = gsp.info().Where(y => (y.Path.EndsWith(".c")
                                                                               || y.Path.EndsWith(".cpp")
@@ -101,7 +101,7 @@ namespace DPTool_2
                             }
                         }
                     }
-                    catch (Exception e)
+                    catch 
                     {
                         //      Console.Write("X");
                     }

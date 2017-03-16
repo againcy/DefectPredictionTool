@@ -1,0 +1,150 @@
+﻿GitCommandTool.cs
+
+//private static Regex bugkeywordsmatcher = new Regex(@"(?i)[a-z]+");
+//private static List<string> bugKeywords = new List<string> {
+//    "bug","bugs","bugzilla","fail","fails","failed","failing","fix","fixes","fixed","fixing","solve","solves","solved","solving","failure","failures" };
+private static Regex bugNumber = new Regex(@"bug[# \t]*[0-9]+|pr[# \t]*[0-9]+|show_bug\.cgi\?id=[0-9]+|\[[0-9]+\]");
+private static Regex bugKeyword = new Regex(@"fix(e[ds])?|defects?|patch");
+public static bool ContainsBugKeywords(string info)
+{
+    var s = info.ToLower();
+    if (bugNumber.Match(s).Success == true || bugKeyword.Match(s).Success == false) return true;
+    if (bugNumber.Match(s).Success == true && bugKeyword.Match(s).Success == true) return true;
+    //if (bugNumber.Match(s).Success == true) return true;
+    else return false;
+}
+
+public static IEnumerable<Commit> getBugsNaive(Commit[] commits)
+            {
+                return commits.Where(x => ContainsBugKeywords(x.message));
+            }
+
+            public static IEnumerable<string> GetBugsLine(Commit[] commits, string workdir, DateTime date, string language)
+            {
+                var ret = new List<string>();
+                var bugcommits = commits.Where(x => ContainsBugKeywords(x.message)).ToArray();
+                var count = 0;
+                foreach (var x in bugcommits)
+                {
+                    ++count;
+                    System.Diagnostics.Debug.Write(count);
+                    try
+                    {
+                        var gitshowcontent = GitCommandTool.RunGitCommand(workdir, string.Format("show {0}", x.commitno));
+                        var gsp = new GitShow.GitShowParser(gitshowcontent);
+                        GitShow.FileChange[] filechanges = null;
+                        if (language == "java") filechanges = gsp.info().Where(y => y.Path.EndsWith(".java")).ToArray();
+                        else if (language == "c")
+                            filechanges = gsp.info().Where(y => (y.Path.EndsWith(".c")
+                                                              || y.Path.EndsWith(".cpp")
+                                                              || y.Path.EndsWith(".h")
+                                                              || y.Path.EndsWith(".hpp"))).ToArray();
+                        if (filechanges.Count() == 0)
+                        {
+                            //System.Diagnostics.Debug.WriteLine("continued");
+                            continue;
+                        }
+
+                        checkFileChanges2(workdir, date, ret, x, filechanges);
+                        //System.Diagnostics.Debug.WriteLine("passed with flag = "+flag);
+                    }
+                    catch (Exception)
+                    {
+                        //flag = false;
+                        System.Diagnostics.Debug.WriteLine("with exception in GitCommandTool.GetBugsLine");
+                        //throw;
+                    }
+                }
+                return ret;
+            }
+
+			private static void checkFileChanges2(string workdir, DateTime date, List<string> ret, Commit x, GitShow.FileChange[] filechanges)
+            {
+                Regex r = new Regex(@"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                var gitresult = "";
+                foreach (var f in filechanges)
+                    try
+                    {
+                        gitresult = GitCommandTool.RunGitCommand(workdir, string.Format(@"blame {0}^ .{1}", x.commitno, f.Path));
+                        var s = gitresult.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                        var flag = true;
+                        foreach (var i in f.OldVersionChangedLines)
+                            if (DateTime.Parse(r.Match(s[i - 1]).Value) > date)
+                            {
+                                flag = false;
+                                break;
+                            }
+                        if (flag)
+                            ret.Add(f.Path);
+                    }
+                    catch (Exception e)
+                    {
+                        throw e;
+                    }
+            }
+            private static void checkFileChanges(string workdir, DateTime date, List<string> ret, Commit x, GitShow.FileChange[] filechanges)
+            {
+                foreach (var y in filechanges)
+                {
+                    var flag = true;
+                    var l = 0;
+                    var r = 0;
+                    if (y.OldVersionChangedLines.Length == 0)
+                    {
+
+                    }
+                    else if (y.OldVersionChangedLines.Length == 1)
+                    {
+                        var t = GitCommandTool.CheckGitBlame(y.OldVersionChangedLines[0],
+                                1,
+                                y.Path,
+                                workdir,
+                                x.commitno,
+                                date);
+                        flag = flag & t;
+                    }
+                    else
+                        for (int i = 1; i < y.OldVersionChangedLines.Max(); ++i)
+                        {
+                            if (y.OldVersionChangedLines[i] - 1 != y.OldVersionChangedLines[i - 1])
+                            {
+                                r = i - 1;
+                                var t = GitCommandTool.CheckGitBlame(y.OldVersionChangedLines[l],
+                                    y.OldVersionChangedLines[i - 1] - y.OldVersionChangedLines[l] + 1,
+                                    y.Path,
+                                    workdir,
+                                    x.commitno,
+                                    date);
+                                flag = flag & t;
+                                if (!flag)
+                                    break;
+                                l = i;
+                            }
+                        }
+                    if (flag)
+                        ret.Add(y.Path);
+                }
+            }
+
+			            /// <summary>
+            /// Check if <c>length</c> lines starting at <c>linestart </c> in <c>file</c> are changed by <c>prevcommitno</c>.
+            /// </summary>
+            /// <param name="linestart"></param>
+            /// <param name="length"></param>
+            /// <param name="file"></param>
+            /// <param name="workdir"></param>
+            /// <param name="prevcommitno"></param>
+            /// <returns></returns>
+            public static bool CheckGitBlame(int linestart, int length, string file, string workdir, string commitno, DateTime date)
+            {
+                Regex r = new Regex(@"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}");
+                var s = GitCommandTool.RunGitCommand(workdir, string.Format(@"blame -L {0},+{1} {2}^ .{3}", linestart, length, commitno, file))
+                    .Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < s.Length; ++i)
+                {
+                    var date1 = DateTime.Parse(r.Match(s[i]).Value);
+                    if (date1 > date)
+                        return false;
+                }
+                return true;
+            }

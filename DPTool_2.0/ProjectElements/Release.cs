@@ -30,6 +30,16 @@ namespace DPTool_2
             mixedMetric = new Metrics();
         }
 
+        public Release(string relNo,DateTime relDate)
+        {
+            releaseNo = relNo;
+            releaseDate = relDate;
+
+            codeMetric = new CodeMetric();
+            processMetric = new ProcessMetric();
+            mixedMetric = new Metrics();
+        }
+
         /// <summary>
         /// 直接从文件中读取度量
         /// 0:成功; 1:缺少mixedMetric; 2:缺少code或process

@@ -36,10 +36,12 @@ namespace DPTool_2
             }
         }
         private string Rdir;
+        private string locColName;
 
-        public Evaluation(string Rdir)
+        public Evaluation(string _Rdir,string _locColName = "CountLineCode")
         {
-            this.Rdir = Rdir;
+            Rdir = _Rdir;
+            locColName = _locColName;
         }
 
         /// <summary>
@@ -73,7 +75,9 @@ namespace DPTool_2
                     
                     var targetName = target.Replace(',', '_');//_cm,ant,1.7.0,1.7.1
                     var targetLocPath = string.Format(@"{0}\_cm\{1}\{2}.csv", Rdir, arrTarget[1], arrTarget[3]);//G:\R\TraditionalML\code_and_process\_cm\ant
-                    /*
+                    
+                    /* 
+                    //cv
                     var targetName = target.Replace(",", "_");//ant,1.6_1
                     var targetLocPath = string.Format(@"{0}\_code\{1}_test.csv", Rdir, targetName);
                     */
@@ -82,7 +86,7 @@ namespace DPTool_2
                     var targetLocPath = string.Format(@"{0}\_test\{1}\{2}.csv", Rdir, arrTarget[1], arrTarget[2]);//G:\R\TraditionalML\mixed_mixed\_test\ant
                     */
                     var metricValue = new Dictionary<EvaluationMode, Dictionary<int, double>>();
-                    ProcessMethod(method, targetName, targetLocPath, methodList[method], modeList, 5, out metricValue,0.2);
+                    ProcessMethod(method, targetName, targetLocPath, methodList[method], modeList, 10, out metricValue,0.2);
                     foreach (var mv in metricValue.Keys)
                     {
                         var newitem = new Result(method,targetName,mv,metricValue[mv]);
@@ -146,7 +150,7 @@ namespace DPTool_2
                             break;
                         case EvaluationMode.CE:
                             var locFile = string.Format(@"{0}\{1}\{2}.csv", Rdir, methodName, targetName);
-                            EvaluationTool.ReadLoc(targetLocPath, "loc", out loc);
+                            EvaluationTool.ReadLoc(targetLocPath, locColName, out loc);
                             double acc;
                             metricValue[mode].Add(repeatID, EvaluationTool.CE(conditionLabel, testLabel, loc, out acc, ceP));
                             break;
@@ -274,6 +278,75 @@ namespace DPTool_2
                 }
 
             }
+        }
+
+        /// <summary>
+        /// 分析wilcoxon检验的结果
+        /// </summary>
+        /// <param name="mode">评估指标</param>
+        public void AnalyzeWilcoxon(string mode)
+        {
+            StreamReader sr = new StreamReader(string.Format(@"{0}\{1}_wil_result.csv",Rdir,mode));
+            string line = sr.ReadLine();
+            //result[data][wintieloss]=count
+            //win:1 tie:2 loss:3
+            var result = new Dictionary<string, Dictionary<string, int>>();
+            var methodList = new List<string>();
+            while ((line = sr.ReadLine()) != null)
+            {
+                var arr = line.Split(',');
+                var data = arr[0];
+                var m1 = arr[1];
+                var m2 = arr[2];
+                string method = "";
+                if (m1 == "RNN") method = m2;
+                else method = m1;
+                if (methodList.Contains(method) == false) methodList.Add(method);
+                var pv = Convert.ToDouble(arr[3]);
+                if (result.ContainsKey(data) == false)
+                {
+                    result.Add(data, new Dictionary<string, int>());
+                }
+                if (result[data].ContainsKey(method) == false) result[data].Add(method, 2);
+                if (pv < 0.05)
+                {
+                    if (m1 == "RNN") result[data][method] = 1;
+                    if (m2 == "RNN") result[data][method] = 3;
+                }
+            }
+            sr.Close();
+            /*
+            //读取对应的方法名
+            sr = new StreamReader(@"G:\R\test\methodList.txt");
+            var methodMapping = new Dictionary<string, string>();
+            while ((line = sr.ReadLine()) != null)
+            {
+                var arr = line.Split(',');
+                methodMapping.Add(arr[0], arr[1]);
+            }
+            sr.Close();
+            */
+            //输出
+            StreamWriter sw = new StreamWriter(string.Format(@"{0}\{1}_wintieloss.csv",Rdir,mode));
+            sw.WriteLine("techniques,win,tie,loss");
+            foreach (var method in methodList)
+            {
+                int win = 0;
+                int tie = 0;
+                int loss = 0;
+                foreach (var data in result.Keys)
+                {
+                    switch (result[data][method])
+                    {
+                        case 1: win++; break;
+                        case 2: tie++; break;
+                        case 3: loss++; break;
+                    }
+                }
+                sw.WriteLine("{0},{1},{2},{3}", method, win.ToString(), tie.ToString(), loss.ToString());
+            }
+
+            sw.Close();
         }
     }
 }

@@ -40,9 +40,9 @@ namespace DPTool_2
             if (Directory.Exists(dir) == false) Directory.CreateDirectory(dir);
             //读入各种信息
 
-            //ReadAuthorInfo();
+            ReadAuthorInfo();
             GetReleases();
-            //GetBuggyInterval();
+            GetBuggyInterval();
             
         }
 
@@ -52,7 +52,7 @@ namespace DPTool_2
         /// <param name="startRel">起始版本</param>
         /// <param name="endRel">末尾版本</param>
         /// <returns>以版本时间排序的Release集合</returns>
-        public SortedDictionary<DateTime,Release> GetPickedRelease(string startRel, string endRel)
+        public SortedDictionary<DateTime,Release> GetReleaseBetween(string startRel, string endRel)
         {
             DateTime start = DateTime.Now;
             DateTime end = DateTime.Now;
@@ -89,17 +89,32 @@ namespace DPTool_2
         /// </summary>
         public void GetReleases()
         {
-            var releaseFile = string.Format(@"{0}\{1}_releases\release_date.csv", Program.rootDir, projectName);
-            StreamReader sr = new StreamReader(releaseFile);
-            DateTime lastRealease = Program.zeroDate;//记录上一个版本的发布时间,默认为2000-1-1
-            foreach (var line in sr.ReadToEnd().Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+            //读入release date
+            var relDateFile = string.Format(@"{0}\{1}_releases\releaseDate.txt", Program.rootDir, projectName);
+            StreamReader srDate = new StreamReader(relDateFile);
+            var relDate = new Dictionary<string, DateTime>();
+            foreach (var line in srDate.ReadToEnd().Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
             {
-                var r = new Release(line);
+                relDate.Add(line.Split(',')[0], Convert.ToDateTime(line.Split(',')[1]));
+            }
+            srDate.Close();
+            //读入picked release
+            DateTime lastRealease = Program.zeroDate;//记录上一个版本的发布时间,默认为2000-1-1
+            var relPickedFile = string.Format(@"{0}\{1}_releases\releasePicked.txt", Program.rootDir, projectName);
+            StreamReader srPicked = new StreamReader(relPickedFile);
+            foreach (var line in srPicked.ReadToEnd().Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (relDate.ContainsKey(line)==false)
+                {
+                    Program.Log(string.Format("Project.GetReleases: [{0} {1}] not exist in releaseDate.txt", this.projectName, line));
+                    continue;
+                }
+                var r = new Release(line, relDate[line]);
                 r.lastReleaseDate = lastRealease;
                 releaseSet.Add(r);
                 lastRealease = r.releaseDate;
             }
-            sr.Close();
+            srPicked.Close();
         }
 
         /// <summary>

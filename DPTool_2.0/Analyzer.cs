@@ -7,7 +7,7 @@ using System.Data;
 
 namespace DPTool_2
 {
-    public static class Analysis
+    public static class Analyzer
     {
         /// <summary>
         /// 统计各种类模块数量
@@ -19,7 +19,7 @@ namespace DPTool_2
         /// <returns>newborn,developing,dead,relLength,avgLength</returns>
         public static string ModuleType(Project p, string startRel, string endRel)
         {
-            var pickedRel = p.GetPickedRelease(startRel, endRel);
+            var pickedRel = p.GetReleaseBetween(startRel, endRel);
             var endRelease = pickedRel.Last().Value;
             //结果指标
             var newborn = 0;
@@ -85,7 +85,7 @@ namespace DPTool_2
         /// <returns>末版本中bug占比,末尾两个版本bug相同的模块数</returns>
         public static string Bugs(Project p, string startRel, string endRel)
         {
-            var pickedRel = p.GetPickedRelease(startRel, endRel);
+            var pickedRel = p.GetReleaseBetween(startRel, endRel);
             var endRelease = pickedRel.Last().Value;
             //统计末版本中含bug的模块数占比
             var bugs = 0;
@@ -116,7 +116,7 @@ namespace DPTool_2
                 }
             }
 
-            return string.Format("{0},{1},{2}",bugRate.ToString("0.00"),samebug.ToString(),((double)samebug/(double)developing).ToString("0.00"));
+            return string.Format("{0},{1},{2},{3}", bugs.ToString(), bugRate.ToString("0.000"), samebug.ToString(), ((double)samebug / (double)developing).ToString("0.000"));
         }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace DPTool_2
         /// <returns></returns>
         public static string Bugs_Header()
         {
-            return "BugRate,SameBugModules,SameBugRate";
+            return "BugModules,BugRate,SameBugModules,SameBugRate";
         }
     }
 }

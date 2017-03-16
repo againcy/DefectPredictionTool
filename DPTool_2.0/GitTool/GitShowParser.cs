@@ -14,8 +14,8 @@ namespace DPTool_2
          * diffOfAFile: diffLine (ignore) "---Line" "+++Line" change+
          * change: "@@ -" OldFileLineStart "," Lines " +"NewFileLineStart "," NewFileLineStart (newline) (lines|"+"lines|"-"lines)
          * */
-        namespace GitShow
-        {
+        
+        
             public class FileChange
             {
                 public int[] OldVersionChangedLines, NewVersionChangedLines;
@@ -104,5 +104,5 @@ namespace DPTool_2
                 }
             }
         }
-    }
+    
 }

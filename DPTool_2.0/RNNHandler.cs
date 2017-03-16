@@ -83,5 +83,58 @@ namespace DPTool_2
                 }
             }
         }
+
+        public static void DoWork_cv(string RDir)
+        {
+            var targetList = new List<string>();
+            ReadTarget(RDir, out targetList);
+            var rnnDir = @"G:\R\TraditionalML\promise_cv\rnn\CV\CV";
+            //ant,1.6_0
+            foreach (var target in targetList)
+            {
+                var project = target.Split(',')[0];
+                var endRel = target.Split(',')[1].Split('_')[0];
+                var cvNo = target.Split(',')[1].Split('_')[1];
+                foreach(var subDir in Directory.GetDirectories(rnnDir))
+                {
+                    var tmp = subDir.Split('\\');
+                    var dirName = tmp[tmp.Count() - 1];
+                    if (dirName.Split('_')[0]==project && dirName.Split('_')[2]==endRel)
+                    {
+                        int cnt = 1;
+                        foreach(var file in Directory.GetFiles(subDir+@"\"+cvNo.ToString()))
+                        {
+                            //转置
+                            var sr = new StreamReader(file);
+                            var test = new SortedDictionary<int, string>();
+                            var condition = new SortedDictionary<int, string>();
+                            var x = 0;
+                            foreach (var str in sr.ReadLine().Split(','))
+                            {
+                                test.Add(x, str);
+                                x++;
+                            }
+                            x = 0;
+                            foreach (var str in sr.ReadLine().Split(','))
+                            {
+                                condition.Add(x, str);
+                                x++;
+                            }
+                            sr.Close();
+                            //ant_1.6_0_10.csv
+                            StreamWriter sw = new StreamWriter(string.Format(@"{0}\rnn\{1}_{2}_{3}_{4}.csv", RDir, project, endRel, cvNo, cnt.ToString()));
+                            sw.WriteLine("test,conditions");
+                            foreach (var num in test.Keys)
+                            {
+                                sw.WriteLine(test[num] + "," + condition[num]);
+                            }
+                            sw.Close();
+                            cnt++;
+                        }
+                    }
+                }
+            }
+
+        }
     }
 }

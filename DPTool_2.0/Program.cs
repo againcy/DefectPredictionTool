@@ -12,94 +12,14 @@ namespace DPTool_2
     class Program
     {
         public static string rootDir;
+        public static string RDir;
         public static DateTime zeroDate;
-
-        static void Initialize(out List<string>projectList, out Dictionary<string, int> methodList)
-        {
-            
-            projectList = new List<string>();
-            /*
-            projectList.Add("ant,2005-6-3,2016-4-11,java");
-            projectList.Add("camel,2009-5-14,2014-9-14,java");
-            projectList.Add("derby,2007-12-11,2016-10-26,java");
-            projectList.Add("hive,2010-2-23,2016-6-21,java");
-            projectList.Add("jmeter,2011-11-2,2017-1-1,java");
-            projectList.Add("log4j,2000-1-1,2014-7-13,java");
-            projectList.Add("poi,2007-1-1,2017-1-1,java");
-            projectList.Add("xerces-c,1999-11-9,2017-1-1,c");
-            //projectList.Add("qpid,2009-1-28,2012-8-31,java");
-            */
-            projectList.Add("ant");
-            projectList.Add("camel");
-            //projectList.Add("ivy");
-            projectList.Add("jedit");
-            projectList.Add("log4j");
-            projectList.Add("lucene");
-            projectList.Add("poi");
-            projectList.Add("velocity");
-            projectList.Add("xalan");
-            projectList.Add("xerces");
-            
-
-            methodList = new Dictionary<string, int>();
-            methodList.Add("nb", 0);
-            methodList.Add("regression", 0);
-            methodList.Add("rf", 1);
-            methodList.Add("J48", 0);
-            //methodList.Add("rnn1", 1);
-            //methodList.Add("rnn2", 1);
-            //methodList.Add("rnn3", 1);
-            methodList.Add("svm", 0);
-            methodList.Add("knn", 0);
-            methodList.Add("nnet", 1);
-            methodList.Add("C5.0", 0);
-        }
-
-        /// <summary>
-        /// 发布一个询问
-        /// </summary>
-        /// <param name="retNo">true: 返回选项编号; false: 返回选项字符串</param>
-        /// <param name="msg">询问主题</param>
-        /// <param name="options">选项</param>
-        /// <returns></returns>
-        static string Request(bool retNo,string msg,params string[] options)
-        {
-            //发布
-            Console.WriteLine(msg);
-            var no = 0;
-            foreach(var op in options)
-            {
-                no++;
-                Console.WriteLine("{0}: {1}", no.ToString(), op);
-            }
-            Console.WriteLine("0: 结束");
-            //接收 直到回答合法
-            string ret="";
-            int ans = -1;
-            while (ans == -1)
-            {
-                var ansStr = Console.ReadLine();
-                if (int.TryParse(ansStr, out ans) == true)
-                {
-                    if (ans <= no)
-                    {
-                        //成功
-                        if (retNo == true) ret = ans.ToString();
-                        else if (ans != 0) ret = options[ans-1];
-                        else ret = "0";
-                        break;
-                    }
-                }
-                Console.WriteLine("指令无效...");
-                ans = -1;
-            }
-            return ret;
-        }
 
         static void Main(string[] args)
         {
             zeroDate = Convert.ToDateTime("1999-1-1");
-            rootDir = @"G:\PromissMetrics";
+            rootDir = @"G:\GitRepos";
+            RDir = @"G:\R\TraditionalML\code_and_process";
             //读入项目列表
             var projectList = new List<string>();
             var methodList = new Dictionary<string, int>();
@@ -117,11 +37,99 @@ namespace DPTool_2
                     "评估分类方法的结果",
                     "处理RNN数据",
                     "执行CodeDiff",
-                    "生成cv");
+                    "生成cv",
+                    "Win/Tie/Loss分析",
+                    "BugID获取");
                 Answer(projectList, methodList, ans);
                 Console.WriteLine("完成...");
             }
             Console.WriteLine("End...");
+        }
+
+        static void Initialize(out List<string> projectList, out Dictionary<string, int> methodList)
+        {
+
+            projectList = new List<string>();
+
+            //projectList.Add("ant,2005-6-3,2016-4-11,java");
+            projectList.Add("camel,2009-5-14,2014-9-14,java");
+            projectList.Add("cassandra,2014-9-10,2017-1-1,java");
+            //projectList.Add("derby,2007-12-11,2016-10-26,java");
+           // projectList.Add("hive,2010-2-23,2016-6-21,java");
+            //projectList.Add("jmeter,2011-11-2,2017-1-1,java");
+            //projectList.Add("log4j,2000-1-1,2014-7-13,java");
+           // projectList.Add("poi,2007-1-1,2017-1-1,java");
+           // projectList.Add("xerces-c,1999-11-9,2017-1-1,c");
+
+            //projectList.Add("qpid,2009-1-28,2012-8-31,java");
+
+            /*
+            projectList.Add("ant");
+            projectList.Add("camel");
+            //projectList.Add("ivy");
+            projectList.Add("jedit");
+            projectList.Add("log4j");
+            projectList.Add("lucene");
+            projectList.Add("poi");
+            projectList.Add("velocity");
+            projectList.Add("xalan");
+            projectList.Add("xerces");
+            
+            */
+
+            methodList = new Dictionary<string, int>();
+            methodList.Add("nb", 0);
+            methodList.Add("regression", 0);
+            methodList.Add("rf", 1);
+            methodList.Add("J48", 0);
+            methodList.Add("rnn", 1);
+            //methodList.Add("rnn2", 1);
+            //methodList.Add("rnn3", 1);
+            methodList.Add("svm", 0);
+            methodList.Add("knn", 0);
+            methodList.Add("nnet", 1);
+            methodList.Add("C5.0", 0);
+        }
+
+        /// <summary>
+        /// 发布一个询问
+        /// </summary>
+        /// <param name="retNo">true: 返回选项编号; false: 返回选项字符串</param>
+        /// <param name="msg">询问主题</param>
+        /// <param name="options">选项</param>
+        /// <returns></returns>
+        static string Request(bool retNo, string msg, params string[] options)
+        {
+            //发布
+            Console.WriteLine(msg);
+            var no = 0;
+            foreach (var op in options)
+            {
+                no++;
+                Console.WriteLine("{0}: {1}", no.ToString(), op);
+            }
+            Console.WriteLine("0: 结束");
+            //接收 直到回答合法
+            string ret = "";
+            int ans = -1;
+            while (ans == -1)
+            {
+                var ansStr = Console.ReadLine();
+                if (int.TryParse(ansStr, out ans) == true)
+                {
+                    if (ans <= no)
+                    {
+                        //成功
+                        if (retNo == true) ret = ans.ToString();
+                        else if (ans != 0) ret = options[ans - 1];
+                        else ret = "0";
+                        break;
+                    }
+                }
+                Console.WriteLine("指令无效...");
+                ans = -1;
+            }
+            return ret;
         }
 
         /// <summary>
@@ -152,11 +160,11 @@ namespace DPTool_2
                         var startDate = project.Split(',')[1];
                         var endDate = project.Split(',')[2];
                         var language = project.Split(',')[3];
-                        Run_ProjectAnalyzer(projectName);
+                        Run_GetMetrics(projectName);
                     }
                     break;
                 case "3":
-                    Run_Analysis();
+                    Run_Analyzer();
                     break;
                 case "4":
                     GetHVSMs();
@@ -178,6 +186,13 @@ namespace DPTool_2
                 case "9":
                     Run_CreateCV();
                     break;
+                case "10":
+                    Run_AnalyzeWilcoxon();
+                    break;
+                case "11":
+                    //通过爬虫获取bug id
+                    Run_WebCrawler();
+                    break;
             };
         }
 
@@ -188,21 +203,24 @@ namespace DPTool_2
         /// <param name="startDate"></param>
         static void Run_GitLogAnalyzer(string projectName, DateTime startDate, DateTime endDate, string language)
         {
+            //bug id 
+            BugCommitChecker bugChecker = new BugCommitChecker(projectName);
+            bugChecker.ReadBugID_JIRA(string.Format(@"{0}\{1}_releases\bugID.txt", rootDir, projectName));
+
             StreamWriter sw;
             //buggy interval
             Console.WriteLine("Processing buggy intervals of [{0}]...", projectName);
             var logPath = string.Format(@"{0}\{1}_releases\git_log.csv", rootDir, projectName); //@"G:\GitRepos\ant_releases\git_log.csv";
             var repoPath = string.Format(@"{0}\{1}\", rootDir, projectName);//@"G:\GitRepos\ant\
-
-            var intervals = GitLogAnalyzer.GetBuggyIntervals(projectName, logPath, repoPath, "#SEP#", endDate, language);
+            var intervals = GitLogAnalyzer.GetBuggyIntervals(projectName, logPath, repoPath, "#SEP#", endDate, language,bugChecker);
             var outPath = string.Format(@"{0}\{1}_releases\BuggyIntervals.csv", rootDir, projectName); // @"G:\GitRepos\ant_releases\BuggyIntervals.csv"
             sw = new StreamWriter(outPath);
             foreach (var line in intervals) sw.WriteLine(line);
             sw.Close();
-
+            
             //author
             Console.WriteLine("Processing author infos of [{0}]...", projectName);
-            var authors = GitLogAnalyzer.GetAuthorExp(logPath, "#SEP#", startDate, endDate, repoPath, language);
+            var authors = GitLogAnalyzer.GetAuthorExp(logPath, "#SEP#", startDate, endDate, repoPath, language,bugChecker);
             var authorDir = string.Format(@"{0}\{1}_releases\authors", rootDir, projectName);//@"G:\GitRepos\ant_releases\authors\
             if (Directory.Exists(authorDir) == false) Directory.CreateDirectory(authorDir);
             foreach (var author in authors)
@@ -211,13 +229,14 @@ namespace DPTool_2
                 sw.Write(author.ExportToString());
                 sw.Close();
             }
+            
         }
 
         /// <summary>
         /// 获取项目度量
         /// </summary>
         /// <param name="projectName"></param>
-        static void Run_ProjectAnalyzer(string projectName)
+        static void Run_GetMetrics(string projectName)
         {
             Project p = new Project(projectName);
             //p.ImportMetrics();
@@ -233,12 +252,12 @@ namespace DPTool_2
         /// <summary>
         /// 分析数据集
         /// </summary>
-        static void Run_Analysis()
+        static void Run_Analyzer()
         {
             StreamReader sr = new StreamReader(string.Format(@"{0}\HVSM.txt", rootDir));
             StreamWriter sw = new StreamWriter(string.Format(@"{0}\Analysis.csv", rootDir));
 
-            sw.WriteLine("Project,Start,End,{0},{1}", Analysis.ModuleType_Header(), Analysis.Bugs_Header());
+            sw.WriteLine("Project,Start,End,{0},{1}", Analyzer.ModuleType_Header(), Analyzer.Bugs_Header());
             string line;
             while ((line = sr.ReadLine()) != null)
             {
@@ -249,8 +268,8 @@ namespace DPTool_2
                 p.ImportMetrics();
                 var startRel = tmp[1];
                 var endRel = tmp[2];
-                var moduleType = Analysis.ModuleType(p, startRel, endRel);
-                var bugs = Analysis.Bugs(p, startRel, endRel);
+                var moduleType = Analyzer.ModuleType(p, startRel, endRel);
+                var bugs = Analyzer.Bugs(p, startRel, endRel);
                 sw.WriteLine("{0},{1},{2},{3},{4}", p.projectName, startRel, endRel, moduleType, bugs);
             }
             sr.Close();
@@ -331,7 +350,7 @@ namespace DPTool_2
         static void Run_Evaluation(Dictionary<string, int> methodList, IEnumerable<EvaluationMode> modeList)
         {
             Console.WriteLine(System.DateTime.Now.ToLongTimeString());
-            Evaluation ev = new Evaluation(@"G:\R\TraditionalML\promise_codechurn");
+            Evaluation ev = new Evaluation(RDir);
             ev.DoWork(methodList, modeList.ToList());
             Console.WriteLine(System.DateTime.Now.ToLongTimeString());
         }
@@ -341,7 +360,8 @@ namespace DPTool_2
         /// </summary>
         static void Run_RNNHandler()
         {
-            RNNHandler.DoWork(@"G:\R\TraditionalML\mixed_mixed");
+            //RNNHandler.DoWork(@"G:\R\TraditionalML\mixed_mixed");
+            RNNHandler.DoWork_cv(RDir);
         }
 
         /// <summary>
@@ -378,8 +398,8 @@ namespace DPTool_2
         static void Run_CreateCV()
         {
             
-            StreamReader sr = new StreamReader(@"G:\PromissMetrics\cvRelList.txt");
-            StreamWriter sw = new StreamWriter(@"G:\PromissMetrics\Rlist.txt");
+            StreamReader sr = new StreamReader(RDir+@"\cvRelList.txt");
+            StreamWriter sw = new StreamWriter(RDir+@"\Rlist.txt");
 
             string line;
             while ((line = sr.ReadLine()) != null)
@@ -393,6 +413,27 @@ namespace DPTool_2
             sw.Close();
             sr.Close();
             
+        }
+
+        static void Run_AnalyzeWilcoxon()
+        {
+            Evaluation ev = new Evaluation(RDir);
+            ev.AnalyzeWilcoxon("AUC");
+           // ev.AnalyzeWilcoxon("CE");
+        }
+
+        static void Run_WebCrawler()
+        {
+            WebCrawler wc = new WebCrawler();
+            wc.DoWork("camel", rootDir);
+        }
+
+        static public void Log(string info)
+        {
+            StreamWriter sw = new StreamWriter(string.Format(@"{0}/log.txt", rootDir), true);
+            sw.WriteLine(DateTime.Now.ToString());
+            sw.WriteLine(info);
+            sw.Close();
         }
     }
 }
