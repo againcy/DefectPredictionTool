@@ -11,10 +11,11 @@ namespace DPTool_2
     public class BugCommitChecker
     {
         private static Regex regexBugNumber = new Regex(@"bug[# \t]*[0-9]+|pr[# \t]*[0-9]+|show_bug\.cgi\?id=[0-9]+|\[[0-9]+\]");
+        private static Regex number = new Regex(@"[0-9]+");
         private static Regex regexKeyword = new Regex(@"fix(e[ds])?|defects?|patch");
 
-        public enum CheckMode { JIRA, BugNumber, Keyword, NumberAndKeyword };
-        private List<string> bugID_JIRA;
+        public enum CheckMode { JIRA, BugNumber, Keyword, NumberAndKeyword, Bugzilla };
+        private List<string> bugID;
         private string projectName;
 
         public BugCommitChecker(string _projectName)
@@ -26,14 +27,14 @@ namespace DPTool_2
         /// 读入bug ID
         /// </summary>
         /// <param name="path"></param>
-        public void ReadBugID_JIRA(string path)
+        public void ReadBugID(string path)
         {
-            bugID_JIRA = new List<string>();
+            bugID = new List<string>();
             StreamReader sr = new StreamReader(path);
             string line;
             while ((line = sr.ReadLine()) != null)
             {
-                if (bugID_JIRA.Contains(line) == false) bugID_JIRA.Add(line.ToLower());
+                if (bugID.Contains(line) == false) bugID.Add(line.ToLower());
             }
             sr.Close();
         }
@@ -50,13 +51,13 @@ namespace DPTool_2
             bool flag = false;
             foreach (var mode in checkMode)
             {
+                Match match;
                 switch (mode)
                 {
-                    default:
                     case CheckMode.JIRA:
                         var JIRA = new Regex(projectName.ToLower() + @"\-[0-9]+");
-                        var match = JIRA.Match(commit);
-                        flag = match.Success && bugID_JIRA.Contains(match.ToString());
+                        match = JIRA.Match(commit);
+                        flag = match.Success && bugID.Contains(match.ToString());
                         break;
                     case CheckMode.Keyword:
                         flag = regexKeyword.Match(commit).Success;
@@ -66,6 +67,17 @@ namespace DPTool_2
                         break;
                     case CheckMode.NumberAndKeyword:
                         flag = regexBugNumber.Match(commit).Success && regexKeyword.Match(commit).Success;
+                        break;
+                    case CheckMode.Bugzilla:
+                        var bugzilla = new Regex(@"bug[# \t]*[0-9]+|show_bug\.cgi\?id=[0-9]+");
+                        match = bugzilla.Match(commit);
+                        if (match.Success == true)
+                        {
+                            var bugnum = number.Match(match.ToString()).ToString();
+                            flag = bugID.Contains(bugnum);
+                        }
+                        break;
+                    default:
                         break;
                 };
                 if (flag == true) break;

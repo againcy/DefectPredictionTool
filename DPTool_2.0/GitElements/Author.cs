@@ -104,9 +104,16 @@ namespace DPTool_2
         /// </summary>
         /// <param name="commits"></param>
         /// <param name="workdir">repository路径</param>
-        /// <param name="language">程序文件后缀(.java)</param>
+        /// <param name="language">程序语言(java|c)</param>
+        /// <param name="bugChecker">bug commit 检测器</param>
+        /// <param name="trackingSystem">bug id 所在的跟踪系统</param>
         /// <returns></returns>
-        public static IEnumerable<Author> GetAuthorExp(Commit[] commits, string workdir, string language, BugCommitChecker bugChecker)
+        public static IEnumerable<Author> GetAuthorExp(
+            Commit[] commits,
+            string workdir, 
+            string language,
+            BugCommitChecker bugChecker,
+            BugCommitChecker.CheckMode trackingSystem)
         {
             var ret = new Dictionary<string, Author>();
             foreach (var x in commits)
@@ -130,7 +137,7 @@ namespace DPTool_2
                     //将每个commit修改的文件名和每个文件修改的行数信息添加进作者的信息中
                     if (ret.ContainsKey(x.author) == false) ret.Add(x.author, new Author(x.author));
                     var changeInfo = new CommitChangeInfo(x.commitno);
-                    changeInfo.isBugCommit = bugChecker.ContainsBug(x.message,BugCommitChecker.CheckMode.JIRA);
+                    changeInfo.isBugCommit = bugChecker.ContainsBug(x.message,trackingSystem,BugCommitChecker.CheckMode.NumberAndKeyword);
                     changeInfo.commitDate = x.commitdate;
                     changeInfo.authorName = x.author;
                     foreach (var fc in filechanges)

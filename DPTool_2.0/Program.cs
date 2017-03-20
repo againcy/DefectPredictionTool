@@ -51,17 +51,16 @@ namespace DPTool_2
 
             projectList = new List<string>();
 
-            //projectList.Add("ant,2005-6-3,2016-4-11,java");
-            projectList.Add("camel,2009-5-14,2014-9-14,java");
-            projectList.Add("cassandra,2014-9-10,2017-1-1,java");
-            //projectList.Add("derby,2007-12-11,2016-10-26,java");
-           // projectList.Add("hive,2010-2-23,2016-6-21,java");
-            //projectList.Add("jmeter,2011-11-2,2017-1-1,java");
-            //projectList.Add("log4j,2000-1-1,2014-7-13,java");
-           // projectList.Add("poi,2007-1-1,2017-1-1,java");
-           // projectList.Add("xerces-c,1999-11-9,2017-1-1,c");
-
-            //projectList.Add("qpid,2009-1-28,2012-8-31,java");
+            projectList.Add("ant,2005-6-3,2016-4-11,java,bugzilla");
+            //projectList.Add("camel,2009-5-14,2014-9-14,java,jira");//jira
+            //projectList.Add("cassandra,2014-9-10,2017-1-1,java,jira");//jira
+            //projectList.Add("derby,2007-12-11,2016-10-26,java,jira");//jira
+            //projectList.Add("hive,2010-2-23,2016-6-21,java,jira");//jira
+            //projectList.Add("jmeter,2011-11-2,2017-1-1,java,bugzilla");
+            //projectList.Add("log4j,2000-1-1,2014-7-13,java,bugzilla");
+           // projectList.Add("poi,2007-1-1,2017-1-1,java,bugzilla");
+           // projectList.Add("xercesc,1999-11-9,2017-1-1,c,jira");//jira
+            //projectList.Add("qpid,2009-1-28,2012-8-31,java,jira");//jira
 
             /*
             projectList.Add("ant");
@@ -149,7 +148,8 @@ namespace DPTool_2
                         var startDate = project.Split(',')[1];
                         var endDate = project.Split(',')[2];
                         var language = project.Split(',')[3];
-                        Run_GitLogAnalyzer(projectName, Convert.ToDateTime(startDate), Convert.ToDateTime(endDate), language);
+                        var trackingSystem = project.Split(',')[4];
+                        Run_GitLogAnalyzer(projectName, Convert.ToDateTime(startDate), Convert.ToDateTime(endDate), language, trackingSystem);
                     }
                     break;
                 case "2":
@@ -191,7 +191,11 @@ namespace DPTool_2
                     break;
                 case "11":
                     //通过爬虫获取bug id
-                    Run_WebCrawler();
+                    foreach (var project in projectList)
+                    {
+                        var projectName = project.Split(',')[0];
+                        Run_WebCrawler(projectName);
+                    }
                     break;
             };
         }
@@ -201,18 +205,28 @@ namespace DPTool_2
         /// </summary>
         /// <param name="projectName"></param>
         /// <param name="startDate"></param>
-        static void Run_GitLogAnalyzer(string projectName, DateTime startDate, DateTime endDate, string language)
+        static void Run_GitLogAnalyzer(string projectName, DateTime startDate, DateTime endDate, string language,string trackingSystem_str)
         {
             //bug id 
             BugCommitChecker bugChecker = new BugCommitChecker(projectName);
-            bugChecker.ReadBugID_JIRA(string.Format(@"{0}\{1}_releases\bugID.txt", rootDir, projectName));
+            bugChecker.ReadBugID(string.Format(@"{0}\{1}_releases\bugID.txt", rootDir, projectName));
+            BugCommitChecker.CheckMode trackingSystem = BugCommitChecker.CheckMode.NumberAndKeyword;
+            switch (trackingSystem_str.ToLower())
+            {
+                case "bugzilla":
+                    trackingSystem = BugCommitChecker.CheckMode.Bugzilla;
+                    break;
+                case "jira":
+                    trackingSystem = BugCommitChecker.CheckMode.JIRA;
+                    break;
+            };
 
             StreamWriter sw;
             //buggy interval
             Console.WriteLine("Processing buggy intervals of [{0}]...", projectName);
             var logPath = string.Format(@"{0}\{1}_releases\git_log.csv", rootDir, projectName); //@"G:\GitRepos\ant_releases\git_log.csv";
             var repoPath = string.Format(@"{0}\{1}\", rootDir, projectName);//@"G:\GitRepos\ant\
-            var intervals = GitLogAnalyzer.GetBuggyIntervals(projectName, logPath, repoPath, "#SEP#", endDate, language,bugChecker);
+            var intervals = GitLogAnalyzer.GetBuggyIntervals(projectName, logPath, repoPath, "#SEP#", endDate, language, bugChecker, trackingSystem);
             var outPath = string.Format(@"{0}\{1}_releases\BuggyIntervals.csv", rootDir, projectName); // @"G:\GitRepos\ant_releases\BuggyIntervals.csv"
             sw = new StreamWriter(outPath);
             foreach (var line in intervals) sw.WriteLine(line);
@@ -220,7 +234,7 @@ namespace DPTool_2
             
             //author
             Console.WriteLine("Processing author infos of [{0}]...", projectName);
-            var authors = GitLogAnalyzer.GetAuthorExp(logPath, "#SEP#", startDate, endDate, repoPath, language,bugChecker);
+            var authors = GitLogAnalyzer.GetAuthorExp(logPath, "#SEP#", startDate, endDate, repoPath, language, bugChecker, trackingSystem);
             var authorDir = string.Format(@"{0}\{1}_releases\authors", rootDir, projectName);//@"G:\GitRepos\ant_releases\authors\
             if (Directory.Exists(authorDir) == false) Directory.CreateDirectory(authorDir);
             foreach (var author in authors)
@@ -422,10 +436,10 @@ namespace DPTool_2
            // ev.AnalyzeWilcoxon("CE");
         }
 
-        static void Run_WebCrawler()
+        static void Run_WebCrawler(string projectName)
         {
             WebCrawler wc = new WebCrawler();
-            wc.DoWork("camel", rootDir);
+            wc.DoWork(projectName, rootDir,WebCrawler.TrackingSystem.Bugzilla);
         }
 
         static public void Log(string info)

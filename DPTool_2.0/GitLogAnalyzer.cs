@@ -9,7 +9,7 @@ using DPTool_2.AnalyzeGitLog;
 namespace DPTool_2
 {
     public static class GitLogAnalyzer
-    { 
+    {
         /// <summary>
         /// 通过git log文件获取所有commit中每个作者修改的文件路径和行数
         /// </summary>
@@ -19,21 +19,24 @@ namespace DPTool_2
         /// <param name="endDate">查询结束时间</param>
         /// <param name="repoPath">git repository路径</param>
         /// <param name="language">项目语言</param>
+        /// <param name="bugChecker">bug commit检测器</param>
+        /// <param name="trackingSystem">bug id 所在的跟踪系统</param>
         public static IEnumerable<Author> GetAuthorExp(
-            string logPath, 
-            string seperator, 
-            DateTime startDate, 
-            DateTime endDate, 
+            string logPath,
+            string seperator,
+            DateTime startDate,
+            DateTime endDate,
             string repoPath,
             string language,
-            BugCommitChecker bugChecker
+            BugCommitChecker bugChecker,
+            BugCommitChecker.CheckMode trackingSystem
             )
         { 
             var s = new StreamReader(logPath).ReadToEnd();
             var p = new GitLogParser(s, seperator);//"#SEP#");
             var results = p.Commits().Where(x => x.commitdate >= startDate
                 && x.commitdate <= endDate).ToArray();
-            return Author.GetAuthorExp(results, repoPath,language,bugChecker);
+            return Author.GetAuthorExp(results, repoPath, language, bugChecker, trackingSystem);
             
         }
 
@@ -46,6 +49,8 @@ namespace DPTool_2
         /// <param name="seperator">分隔符</param>
         /// <param name="endDate">查找的终止时间</param>
         /// <param name="language">项目语言</param>
+        /// <param name="bugChecker">bug commit检测器</param>
+        /// <param name="trackingSystem">bug id 所在的跟踪系统</param>
         public static IEnumerable<string> GetBuggyIntervals(
             string projectName,
             string logPath,
@@ -53,10 +58,11 @@ namespace DPTool_2
             string seperator,
             DateTime endDate,
             string language,
-            BugCommitChecker bugChecker
+            BugCommitChecker bugChecker,
+            BugCommitChecker.CheckMode trackingSystem
             )
         {
-            var intervals = BuggyIntervalFinder.GetBuggyIntervals(logPath, repoPath, seperator, endDate, language,bugChecker);
+            var intervals = BuggyIntervalFinder.GetBuggyIntervals(logPath, repoPath, seperator, endDate, language, bugChecker, trackingSystem);
             var ret = new List<string>();
             foreach (var interval in intervals)
             {

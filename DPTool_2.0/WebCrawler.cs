@@ -11,6 +11,7 @@ namespace DPTool_2
 {
     class WebCrawler
     {
+        public enum TrackingSystem { JIRA, Bugzilla };
         public struct ReleaseBugInfo
         {
             public string releaseNo;
@@ -18,15 +19,26 @@ namespace DPTool_2
             public List<string> bugIDs;
         }
 
-        private string urlHead = @"https://issues.apache.org";
+        private string urlHeadJIRA = @"https://issues.apache.org";
         private string project;
 
-        public void DoWork(string _project,string rootDir)
+        public void DoWork(string _project,string rootDir,TrackingSystem system)
         {
             project = _project;
-            var url = string.Format(@"{0}/jira/browse/{1}?selectedTab=com.atlassian.jira.jira-projects-plugin:changelog-panel&allVersions=true", urlHead, project);
             Console.WriteLine("Processing [{0}]", project);
-            Output(rootDir, Analyse_JIRA(GetDocument(url)));
+
+            string url;
+            switch (system)
+            {
+                case TrackingSystem.JIRA:
+                    url = string.Format(@"{0}/jira/browse/{1}?selectedTab=com.atlassian.jira.jira-projects-plugin:changelog-panel&allVersions=true", urlHeadJIRA, project);
+                    Output(rootDir, Analyse_JIRA(GetDocument(url)), TrackingSystem.JIRA);
+                    break;
+                case TrackingSystem.Bugzilla:
+                    url = string.Format(@"https://bz.apache.org/bugzilla/buglist.cgi?bug_status=RESOLVED&limit=0&product={0}&query_format=advanced&resolution=FIXED", project);
+                    Output(rootDir, Analyse_Bugzilla(GetDocument(url)), TrackingSystem.Bugzilla);
+                    break;
+            };
         }
 
         /// <summary>
@@ -34,7 +46,7 @@ namespace DPTool_2
         /// </summary>
         /// <param name="rootDir"></param>
         /// <param name="result"></param>
-        private void Output(string rootDir, IEnumerable<ReleaseBugInfo> result)
+        private void Output(string rootDir, IEnumerable<ReleaseBugInfo> result, TrackingSystem system)
         {
             //bug id
             StreamWriter sw = new StreamWriter(string.Format(@"{0}\{1}_releases\bugID.txt", rootDir, project));
@@ -46,7 +58,9 @@ namespace DPTool_2
                 }
             }
             sw.Close();
+
             //release date
+            if (system != TrackingSystem.JIRA) return;
             sw = new StreamWriter(string.Format(@"{0}\{1}_releases\releaseDate.txt", rootDir, project));
             var relList = from rel in result
                        orderby rel.releaseDate ascending
@@ -87,6 +101,7 @@ namespace DPTool_2
             catch
             {
                 Console.WriteLine("Loading page error...");
+                Program.Log(string.Format("WebCrawler.GetDocument: Loading page error [{0}]", url));
                 return null;
             }
         }
@@ -99,22 +114,29 @@ namespace DPTool_2
         private IEnumerable<ReleaseBugInfo> Analyse_JIRA(HtmlDocument doc)
         {
             var result = new List<ReleaseBugInfo>();
+            if (doc == null)
+            {
+                Program.Log(string.Format("WebCrawler.Analyse_JIRA: [{0}], project page error", project));
+                return null;
+            }
             var relPageNodes = doc.DocumentNode.SelectNodes(@"//li[@class='version-block-container']");
             foreach (var releaseNode in relPageNodes)
             {
                 var newRelease = new ReleaseBugInfo();
                 //release information
-                var relNo = releaseNode.SelectSingleNode(@"descendant::h3[@class='version-title']").InnerText;
-                var relDate = releaseNode.SelectSingleNode(@"descendant::span[@title='Release date']").InnerText;
-                var newUrl = releaseNode.SelectSingleNode(@"descendant::a[@title='View release notes']").Attributes["href"].Value;
+                var node_relNo = releaseNode.SelectSingleNode(@"descendant::h3[@class='version-title']");
+                var node_relDate = releaseNode.SelectSingleNode(@"descendant::span[@title='Release date']");
+                var relNo = (node_relNo != null)? node_relNo.InnerText : "null";
+                var relDate = (node_relDate != null) ? node_relDate.InnerText : "1/Jan/70";
                 newRelease.releaseNo = relNo.Replace(" ", "");
                 var date = relDate.Split('/');
                 newRelease.releaseDate = string.Format("20{0}/{1}/{2}", date[2], date[1], date[0]);
                 newRelease.bugIDs = new List<string>();
-
                 Console.WriteLine("Now Release [{0}]", relNo);
+
                 //release notes(bug report)
-                var newPage = GetDocument(urlHead + newUrl);
+                var newUrl = releaseNode.SelectSingleNode(@"descendant::a[@title='View release notes']").Attributes["href"].Value;
+                var newPage = GetDocument(urlHeadJIRA + newUrl);
                 if (newPage == null)
                 {
                     Program.Log(string.Format("WebCrawler.Analyse_JIRA: [{0} {1}], page error", project, relNo));
@@ -138,6 +160,30 @@ namespace DPTool_2
             return result;
         }
 
-
+        /// <summary>
+        /// 分析bugzilla页面
+        /// </summary>
+        /// <param name="doc"></param>
+        /// <returns></returns>
+        private IEnumerable<ReleaseBugInfo> Analyse_Bugzilla(HtmlDocument doc)
+        {
+            var result = new List<ReleaseBugInfo>();
+            var allRel = new ReleaseBugInfo();
+            allRel.bugIDs = new List<string>();
+            
+            if (doc == null)
+            {
+                Program.Log(string.Format("WebCrawler.Analyse_Bugzilla: [{0}], project page error", project));
+                return null;
+            }
+            var bugReportNodes = doc.DocumentNode.SelectNodes(@"//td[@class='first-child bz_id_column']");
+            foreach(var node in bugReportNodes)
+            {
+                var idNode = node.SelectSingleNode(@"descendant::a");
+                if (idNode != null) allRel.bugIDs.Add(idNode.InnerText);
+            }
+            result.Add(allRel);
+            return result;
+        }
     }
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using DPTool_2.AnalyzeGitLog;
 using System.IO;
+using System.Collections.Concurrent;
 
 namespace DPTool_2
 {
@@ -44,7 +45,6 @@ namespace DPTool_2
 
             }
             return ret.Distinct();
-
         }
 
         /// <summary>
@@ -56,24 +56,27 @@ namespace DPTool_2
         /// <param name="endDate">查找的截止时间</param>
         /// <param name="language">程序文件后缀(.java)</param>
         /// <param name="bugChecker">bug commit检测</param>
+        /// <param name="trackingSystem">bug id所在的跟踪系统</param>
         /// <returns></returns>
-        public static IEnumerable<BuggyInterval> GetBuggyIntervals(string logpath, string workdir, string sep,DateTime endDate,string language, BugCommitChecker bugChecker)
+        public static IEnumerable<BuggyInterval> GetBuggyIntervals(
+            string logpath,
+            string workdir,
+            string sep,
+            DateTime endDate,
+            string language, 
+            BugCommitChecker bugChecker,
+            BugCommitChecker.CheckMode trackingSystem)
         {
             var glp = new AnalyzeGitLog.GitLogParser(new StreamReader(logpath).ReadToEnd(), sep);
-            /*var commitdates = new Dictionary<string, DateTime>();
-            foreach(var commit in glp.Commits())
-            {
-                commitdates[commit.commitno] = commit.commitdate;
-                
-            }*/
-            var intervals = new List<BuggyInterval>();
+            
+            var intervals = new ConcurrentBag<BuggyInterval>();
             var glpcommits = glp.Commits().ToArray();
             var total = glpcommits.Count();
             Parallel.
             ForEach(glpcommits, c =>
             {
                 //Console.Write(++counter + "/" + total);
-                if (c.commitdate <= endDate && bugChecker.ContainsBug(c.message, BugCommitChecker.CheckMode.JIRA))
+                if (c.commitdate <= endDate && bugChecker.ContainsBug(c.message, trackingSystem, BugCommitChecker.CheckMode.NumberAndKeyword))
                 {
                     try
                     {
@@ -108,7 +111,7 @@ namespace DPTool_2
                 }
                 //Console.WriteLine();
             });
-            return intervals;
+            return intervals.ToList();
         }
     }
 }
