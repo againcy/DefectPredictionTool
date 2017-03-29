@@ -17,9 +17,6 @@ namespace DPTool_2
 
         static void Main(string[] args)
         {
-            zeroDate = Convert.ToDateTime("1999-1-1");
-            rootDir = @"G:\GitRepos";
-            RDir = @"G:\R\TraditionalML\code_and_process";
             //读入项目列表
             var projectList = new List<string>();
             var methodList = new Dictionary<string, int>();
@@ -48,19 +45,36 @@ namespace DPTool_2
 
         static void Initialize(out List<string> projectList, out Dictionary<string, int> methodList)
         {
+            zeroDate = Convert.ToDateTime("1999-1-1");
+            rootDir = @"G:\GitRepos";
+            RDir = @"G:\R\TraditionalML\git_cv";
 
             projectList = new List<string>();
 
+            /*
             projectList.Add("ant,2005-6-3,2016-4-11,java,bugzilla");
-            //projectList.Add("camel,2009-5-14,2014-9-14,java,jira");//jira
-            //projectList.Add("cassandra,2014-9-10,2017-1-1,java,jira");//jira
-            //projectList.Add("derby,2007-12-11,2016-10-26,java,jira");//jira
-            //projectList.Add("hive,2010-2-23,2016-6-21,java,jira");//jira
-            //projectList.Add("jmeter,2011-11-2,2017-1-1,java,bugzilla");
-            //projectList.Add("log4j,2000-1-1,2014-7-13,java,bugzilla");
-           // projectList.Add("poi,2007-1-1,2017-1-1,java,bugzilla");
-           // projectList.Add("xercesc,1999-11-9,2017-1-1,c,jira");//jira
-            //projectList.Add("qpid,2009-1-28,2012-8-31,java,jira");//jira
+            projectList.Add("camel,2009-5-14,2014-9-14,java,jira");
+            projectList.Add("cassandra,2014-9-10,2017-1-1,java,jira");
+            projectList.Add("cxf,2008-4-29,2017-1-1,java,jira");
+            projectList.Add("derby,2007-12-11,2016-10-26,java,jira");
+            projectList.Add("drill,2013-9-24,2017-1-1,java,jira");
+            projectList.Add("hive,2010-2-23,2016-6-21,java,jira");
+            projectList.Add("jmeter,2011-11-2,2017-1-1,java,bugzilla");
+            projectList.Add("log4j,2000-1-1,2014-7-13,java,bugzilla");
+            projectList.Add("openjpa,2007-8-27,2017-1-1,java,jira");
+            projectList.Add("pig,2010-5-14,2016-6-7,java,jira");
+            projectList.Add("poi,2007-1-1,2017-1-1,java,bugzilla");
+            projectList.Add("shiro,2010-6-1,2016-6-28,java,jira");
+            projectList.Add("wicket,2012-3-26,2016-10-21,java,jira");
+            projectList.Add("xercesc,1999-11-9,2017-1-1,c,jira");
+            */
+
+            projectList.Add("avro,2009-1-1,2016-5-19,java,jira");
+            projectList.Add("hbase,2008-2-2,2017-1-1,java,jira");
+            projectList.Add("hadoop,2007-8-20,2015-1-1,java,jira");
+
+            //projectList.Add("amq,2007-6-9,2015-10-15,java,jira");
+            //projectList.Add("qpid,2009-1-28,2012-8-31,java,jira");
 
             /*
             projectList.Add("ant");
@@ -81,10 +95,10 @@ namespace DPTool_2
             methodList.Add("regression", 0);
             methodList.Add("rf", 1);
             methodList.Add("J48", 0);
-            methodList.Add("rnn", 1);
+            //methodList.Add("rnn", 1);
             //methodList.Add("rnn2", 1);
             //methodList.Add("rnn3", 1);
-            methodList.Add("svm", 0);
+            //methodList.Add("svm", 0);
             methodList.Add("knn", 0);
             methodList.Add("nnet", 1);
             methodList.Add("C5.0", 0);
@@ -174,7 +188,7 @@ namespace DPTool_2
                     break;
                 case "6":
                     //评估结果 
-                    var modeList = new List<EvaluationMode>() { EvaluationMode.AUC, EvaluationMode.CE };
+                    var modeList = new List<EvaluationMode>() { EvaluationMode.AUC };
                     Run_Evaluation(methodList, modeList);
                     break;
                 case "7":
@@ -194,7 +208,8 @@ namespace DPTool_2
                     foreach (var project in projectList)
                     {
                         var projectName = project.Split(',')[0];
-                        Run_WebCrawler(projectName);
+                        var trackingSystem = project.Split(',')[4];
+                        Run_WebCrawler(projectName,trackingSystem);
                     }
                     break;
             };
@@ -365,7 +380,7 @@ namespace DPTool_2
         {
             Console.WriteLine(System.DateTime.Now.ToLongTimeString());
             Evaluation ev = new Evaluation(RDir);
-            ev.DoWork(methodList, modeList.ToList());
+            ev.DoWork(methodList, modeList.ToList(),Evaluation.TargetNameMode.CV);
             Console.WriteLine(System.DateTime.Now.ToLongTimeString());
         }
 
@@ -412,17 +427,17 @@ namespace DPTool_2
         static void Run_CreateCV()
         {
             
-            StreamReader sr = new StreamReader(RDir+@"\cvRelList.txt");
-            StreamWriter sw = new StreamWriter(RDir+@"\Rlist.txt");
+            StreamReader sr = new StreamReader(rootDir+@"\cvRelList.txt");
+            StreamWriter sw = new StreamWriter(rootDir+@"\Rlist.txt");
 
             string line;
             while ((line = sr.ReadLine()) != null)
             {
                 var tmp = line.Split(',');
-                //for (int i = 0; i < 5; i++) sw.WriteLine("{0},{1}_{2}", tmp[0], tmp[1], i.ToString());
-                //Preprocess.CreateCVList(tmp[0], tmp[1]);  //cv list
-                //Preprocess.CreateCV(tmp[0], tmp[1], "CodeMetrics", 5);
-                Preprocess.CreateCVHVSM(tmp[0], tmp[1], "code", 5);
+                for (int i = 0; i < 5; i++) sw.WriteLine("{0},{1}_{2}", tmp[0], tmp[1], i.ToString());
+                Preprocess.CreateCVList(rootDir, tmp[0], tmp[1]);  //cv list
+                Preprocess.CreateCV(rootDir, tmp[0], tmp[1], "MixedMetrics", 5);
+                //Preprocess.CreateCVHVSM(tmp[0], tmp[1], "code", 5);
             }
             sw.Close();
             sr.Close();
@@ -436,14 +451,23 @@ namespace DPTool_2
            // ev.AnalyzeWilcoxon("CE");
         }
 
-        static void Run_WebCrawler(string projectName)
+        static void Run_WebCrawler(string projectName, string trackingSystem)
         {
             WebCrawler wc = new WebCrawler();
-            wc.DoWork(projectName, rootDir,WebCrawler.TrackingSystem.Bugzilla);
+            switch (trackingSystem)
+            {
+                case "bugzilla":
+                    wc.DoWork(projectName, rootDir, WebCrawler.TrackingSystem.Bugzilla);
+                    break;
+                case "jira":
+                    wc.DoWork(projectName, rootDir, WebCrawler.TrackingSystem.JIRA);
+                    break;
+            };
         }
 
         static public void Log(string info)
         {
+            Console.WriteLine(DateTime.Now.ToString() + "   " + info);
             StreamWriter sw = new StreamWriter(string.Format(@"{0}/log.txt", rootDir), true);
             sw.WriteLine(DateTime.Now.ToString());
             sw.WriteLine(info);

@@ -35,7 +35,7 @@ namespace DPTool_2
                     Output(rootDir, Analyse_JIRA(GetDocument(url)), TrackingSystem.JIRA);
                     break;
                 case TrackingSystem.Bugzilla:
-                    url = string.Format(@"https://bz.apache.org/bugzilla/buglist.cgi?bug_status=RESOLVED&limit=0&product={0}&query_format=advanced&resolution=FIXED", project);
+                    url = string.Format(@"https://bz.apache.org/bugzilla/buglist.cgi?bug_status=RESOLVED&limit=0&product={0}&query_format=advanced&resolution=FIXED", "Log4j%20-%20Now%20in%20Jira");
                     Output(rootDir, Analyse_Bugzilla(GetDocument(url)), TrackingSystem.Bugzilla);
                     break;
             };

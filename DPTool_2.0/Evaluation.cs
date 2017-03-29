@@ -43,6 +43,7 @@ namespace DPTool_2
             Rdir = _Rdir;
             locColName = _locColName;
         }
+        public enum TargetNameMode { CrossRelease, CV, CrossReleaseMix };
 
         /// <summary>
         /// 计算每个预测结果的performance
@@ -51,11 +52,12 @@ namespace DPTool_2
         /// <param name="modeList">评估指标列表</param>
         public void DoWork(
             Dictionary<string, int> methodList,
-            List<EvaluationMode> modeList
+            List<EvaluationMode> modeList,
+            TargetNameMode nameMode
             )
         {
+            bool cv = false;
             var result = new List<Result>();
-
             //读入目标文件列表
             var targetList = new List<string>();
             StreamReader sr = new StreamReader(Rdir + @"\targetList.txt");
@@ -72,19 +74,25 @@ namespace DPTool_2
                 foreach (var target in targetList)
                 {
                     var arrTarget = target.Split(',');
-                    
-                    var targetName = target.Replace(',', '_');//_cm,ant,1.7.0,1.7.1
-                    var targetLocPath = string.Format(@"{0}\_cm\{1}\{2}.csv", Rdir, arrTarget[1], arrTarget[3]);//G:\R\TraditionalML\code_and_process\_cm\ant
-                    
-                    /* 
-                    //cv
-                    var targetName = target.Replace(",", "_");//ant,1.6_1
-                    var targetLocPath = string.Format(@"{0}\_code\{1}_test.csv", Rdir, targetName);
-                    */
-                    /*
-                    var targetName = string.Format("{0}_{1}_{2}", arrTarget[0], arrTarget[1], arrTarget[2]);//camel_2.0.0_2.4.0,camel,2.6.0,2.0.0
-                    var targetLocPath = string.Format(@"{0}\_test\{1}\{2}.csv", Rdir, arrTarget[1], arrTarget[2]);//G:\R\TraditionalML\mixed_mixed\_test\ant
-                    */
+                    var  targetName = "";
+                    var targetLocPath = "";
+                    switch (nameMode)
+                    {
+                        case TargetNameMode.CrossRelease:
+                            targetName = target.Replace(',', '_');//_cm,ant,1.7.0,1.7.1
+                            targetLocPath = string.Format(@"{0}\_cm\{1}\{2}.csv", Rdir, arrTarget[1], arrTarget[3]);//G:\R\TraditionalML\code_and_process\_cm\ant
+                            break;
+                        case TargetNameMode.CV:
+                            //cv
+                            cv = true;
+                            targetName = target.Replace(",", "_");//ant,1.6_1
+                            targetLocPath = string.Format(@"{0}\_mixed\{1}_test.csv", Rdir, targetName);
+                            break;
+                        case TargetNameMode.CrossReleaseMix:
+                            targetName = string.Format("{0}_{1}_{2}", arrTarget[0], arrTarget[1], arrTarget[2]);//camel_2.0.0_2.4.0,camel,2.6.0,2.0.0
+                            targetLocPath = string.Format(@"{0}\_test\{1}\{2}.csv", Rdir, arrTarget[1], arrTarget[2]);//G:\R\TraditionalML\mixed_mixed\_test\ant
+                            break;
+                    };
                     var metricValue = new Dictionary<EvaluationMode, Dictionary<int, double>>();
                     ProcessMethod(method, targetName, targetLocPath, methodList[method], modeList, 10, out metricValue,0.2);
                     foreach (var mv in metricValue.Keys)
@@ -95,7 +103,7 @@ namespace DPTool_2
                 }
             }
             Console.WriteLine("Now showing results...");
-            ShowResult(result, Rdir);
+            ShowResult(result, Rdir, cv);
             ShowResult_NoAvg(result, Rdir);
         }
 
@@ -173,7 +181,8 @@ namespace DPTool_2
         /// <param name="dir">输出目录</param>
         private void ShowResult(
             IEnumerable<Result> result,
-            string dir
+            string dir,
+            bool cv
             )
         {
             /*
@@ -217,6 +226,53 @@ namespace DPTool_2
                     sw.WriteLine();
                 }                    
                 sw.Close();
+            }
+            if (cv == true)
+            {
+                //输出每个数据集几次cv结果的平均值
+                foreach (var mode in modeList)
+                {
+                    StreamWriter sw = null;
+                    switch (mode)
+                    {
+                        case EvaluationMode.AUC: sw = new StreamWriter(dir + @"\AUC_cvAvg.csv"); break;
+                        case EvaluationMode.F1: sw = new StreamWriter(dir + @"\F1_cvAvg.csv"); break;
+                        case EvaluationMode.CE: sw = new StreamWriter(dir + @"\CE_cvAvg.csv"); break;
+                    };
+
+                    sw.Write("Target");
+                    foreach (var method in methodList) sw.Write("," + method);
+                    sw.WriteLine();
+
+                    //找到所有的target 每个target由name和cv编号组成
+                    //name_cvno    ant_1.6_0
+                    var nameList = targetList.Select(target => target.Substring(0, target.LastIndexOf('_'))).ToList().Distinct();
+
+                    foreach(var name in nameList)
+                    {
+                        sw.Write(name);
+                        var list = from x in targetList
+                                   where x.Contains(name) == true
+                                   select x;
+
+                        foreach (var method in methodList)
+                        {
+                            double value = 0;
+                            foreach (var target in list)
+                            {
+                                var v = from item in result
+                                        where (item.mode == mode && item.target == target && item.method == method)
+                                        select item.score.Values.Average();
+                                value += v.First();
+                            }
+                            value /= list.Count();
+                            sw.Write("," + value.ToString("0.000"));
+
+                        }
+                        sw.WriteLine();
+                    }
+                    sw.Close();
+                }
             }
         }
 

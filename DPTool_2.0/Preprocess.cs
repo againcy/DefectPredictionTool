@@ -157,11 +157,12 @@ namespace DPTool_2
         }
         
         public static void CreateCVList(
+            string rootDir,
             string projectName,
             string release
             )
         {
-            string path = string.Format(@"G:\PromissMetrics\{0}_releases\CodeMetrics\{1}.csv", projectName, release);
+            string path = string.Format(@"{0}\{1}_releases\CodeMetrics\{2}.csv", rootDir, projectName, release);
             StreamReader sr = new StreamReader(path);
             string line = sr.ReadLine();
             int n = 0;
@@ -178,12 +179,15 @@ namespace DPTool_2
                 order[x] = order[y];
                 order[y] = tmp;
             }
-            StreamWriter sw = new StreamWriter(string.Format(@"G:\PromissMetrics\_cvList\{0}_{1}.csv", projectName, release));
+            var dir = string.Format(@"{0}\_cvList", rootDir);
+            if (Directory.Exists(dir) == false) Directory.CreateDirectory(dir);
+            StreamWriter sw = new StreamWriter(string.Format(@"{0}\{1}_{2}.csv",dir, projectName, release));
             for (int i = 0; i < n; i++) sw.WriteLine(order[i].ToString());
             sw.Close();
         }
 
         public static void CreateCV(
+            string rootDir,
             string projectName,
             string release,
             string metricType,
@@ -192,14 +196,14 @@ namespace DPTool_2
         {
             //读入cv list
             var order = new List<int>();
-            StreamReader sr = new StreamReader(string.Format(@"G:\PromissMetrics\_cvList\{0}_{1}.csv", projectName, release));
+            StreamReader sr = new StreamReader(string.Format(@"{0}\_cvList\{1}_{2}.csv",rootDir, projectName, release));
             string line;
             while ((line = sr.ReadLine()) != null) order.Add(Convert.ToInt32(line));
             sr.Close();
             var arrOrder = order.ToArray();
             int n = order.Count();
             //读入度量
-            sr = new StreamReader(string.Format(@"G:\PromissMetrics\{0}_releases\{1}\{2}.csv", projectName, metricType, release));
+            sr = new StreamReader(string.Format(@"{0}\{1}_releases\{2}\{3}.csv",rootDir, projectName, metricType, release));
             string header = sr.ReadLine();
             var metrics = new Dictionary<int,string>();
             var cnt = 0;
@@ -210,6 +214,8 @@ namespace DPTool_2
             }
             sr.Close();
             //输出cv
+            var dir = string.Format(@"{0}\_cv\{1}", rootDir,metricType);
+            if (Directory.Exists(dir)==false) Directory.CreateDirectory(dir);
             var ntest = n / fold;
             for(int f = 0;f<fold;f++)
             {
@@ -222,8 +228,8 @@ namespace DPTool_2
                     test.Add(arrOrder[i]);
                 }
                 //分离test和train
-                var swTrain = new StreamWriter(string.Format(@"G:\PromissMetrics\_cv\{0}\{1}_{2}_{3}_train.csv", metricType, projectName, release, f.ToString()));//ant_1.3_1_train
-                var swTest = new StreamWriter(string.Format(@"G:\PromissMetrics\_cv\{0}\{1}_{2}_{3}_test.csv", metricType, projectName, release, f.ToString()));
+                var swTrain = new StreamWriter(string.Format(@"{0}\{1}_{2}_{3}_train.csv",dir, projectName, release, f.ToString()));//ant_1.3_1_train
+                var swTest = new StreamWriter(string.Format(@"{0}\{1}_{2}_{3}_test.csv", dir, projectName, release, f.ToString()));
                 swTrain.WriteLine(header);
                 swTest.WriteLine(header);
                 foreach (var m in metrics)
